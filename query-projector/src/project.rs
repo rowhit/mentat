@@ -28,6 +28,7 @@ use mentat_core::util::{
 
 use mentat_query::{
     Element,
+    Pull,
     Variable,
 };
 
@@ -182,6 +183,8 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
             },
             &Element::Aggregate(_) => {
             },
+            &Element::Pull(_) => {
+            },
         };
 
         // Record variables -- (the ?x) and ?x are different in this regard, because we don't want
@@ -195,6 +198,11 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
                 // so we know not to group them.
                 corresponded_variables.insert(var.clone());
             },
+            &Element::Pull(Pull { ref var, patterns: _ }) => {
+                // We treat `pull` as an ordinary variable extraction,
+                // and we expand it later..
+                outer_variables.insert(var.clone());
+            },
             &Element::Aggregate(_) => {
             },
         };
@@ -205,7 +213,9 @@ pub(crate) fn project_elements<'a, I: IntoIterator<Item = &'a Element>>(
             // into the SQL projection, aliased to the name of the variable,
             // and we push an annotated index into the projector.
             &Element::Variable(ref var) |
-            &Element::Corresponding(ref var) => {
+            &Element::Corresponding(ref var) |
+            &Element::Pull(Pull { ref var, patterns: _ }) => {
+
                 inner_variables.insert(var.clone());
 
                 let (projected_column, type_set) = projected_column_for_var(&var, &query.cc)?;

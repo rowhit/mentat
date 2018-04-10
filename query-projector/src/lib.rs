@@ -164,6 +164,10 @@ impl QueryOutput {
                 // TODO
                 unimplemented!();
             },
+            &FindScalar(Element::Pull(ref _pull)) => {
+                // TODO
+                unimplemented!();
+            },
             &FindTuple(ref elements) => {
                 let values = elements.iter()
                                      .map(|e| match e {
@@ -173,6 +177,10 @@ impl QueryOutput {
                                                      .cloned()
                                                      .expect("every var to have a binding")
                                                      .into()
+                                         },
+                                         &Element::Pull(ref _pull) => {
+                                            // TODO: static pull.
+                                            unreachable!();
                                          },
                                          &Element::Aggregate(ref _agg) => {
                                             // TODO: static computation of aggregates, then
@@ -191,6 +199,10 @@ impl QueryOutput {
                                   .into();
                 QueryResults::Coll(vec![val])
             },
+            &FindColl(Element::Pull(ref _pull)) => {
+                // TODO
+                unimplemented!();
+            },
             &FindColl(Element::Aggregate(ref _agg)) => {
                 // Does it even make sense to write
                 // [:find [(max ?x) ...] :where [_ :foo/bar ?x]]
@@ -207,6 +219,10 @@ impl QueryOutput {
                                 .cloned()
                                 .expect("every var to have a binding")
                                 .into()
+                    },
+                    &Element::Pull(ref _pull) => {
+                        // TODO: static pull.
+                        unreachable!();
                     },
                     &Element::Aggregate(ref _agg) => {
                         // TODO: static computation of aggregates, then
@@ -671,6 +687,13 @@ pub fn query_projection(query: &AlgebraicQuery) -> Result<Either<ConstantProject
                                                 .map(|e| match e {
                                                     &Element::Variable(ref var) |
                                                     &Element::Corresponding(ref var) => var.clone(),
+
+                                                    // Pull expressions can never be fully bound.
+                                                    // TODO: but the interior can be, in which case we
+                                                    // can handle this and simply project.
+                                                    &Element::Pull(_) => {
+                                                        unreachable!();
+                                                    },
                                                     &Element::Aggregate(ref _agg) => {
                                                         // TODO: static computation of aggregates, then
                                                         // implement the condition in `is_fully_bound`.

@@ -448,18 +448,34 @@ impl PatternValuePlace {
     }
 }
 
-/*
-pub enum PullPattern {
-    Constant(Constant),
-    Variable(Variable),
+// Not yet used.
+// pub enum PullDefaultValue {
+//     EntidOrInteger(i64),
+//     IdentOrKeyword(Rc<NamespacedKeyword>),
+//     Constant(NonIntegerConstant),
+// }
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum PullConcreteAttribute {
+    Ident(Rc<NamespacedKeyword>),
+    Entid(i64),
 }
 
-pub struct Pull {
-    pub src: SrcVar,
-    pub var: Variable,
-    pub pattern: PullPattern,      // Constant, variable, or plain variable.
+#[derive(Debug, Eq, PartialEq)]
+pub enum PullAttributeSpec {
+    Wildcard,
+    Attribute(PullConcreteAttribute),
+    // PullMapSpec(Vec<…>),
+    // AttributeWithOpts(PullConcreteAttribute, …),
+    LimitedAttribute(PullConcreteAttribute, u64),  // Limit nil => Attribute instead.
+    // DefaultedAttribute(PullConcreteAttribute, PullDefaultValue),
 }
-*/
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct Pull {
+    pub var: Variable,
+    pub patterns: Vec<PullAttributeSpec>,
+}
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Aggregate {
@@ -478,7 +494,7 @@ pub enum Element {
     /// `max` or `min` cannot yield predictable behavior, and will err during
     /// algebrizing.
     Corresponding(Variable),
-    // Pull(Pull),             // TODO
+    Pull(Pull),
 }
 
 impl Element {
@@ -486,6 +502,7 @@ impl Element {
     pub fn is_unit(&self) -> bool {
         match self {
             &Element::Variable(_) => false,
+            &Element::Pull(_) => false,
             &Element::Aggregate(_) => true,
             &Element::Corresponding(_) => true,
         }
@@ -503,6 +520,9 @@ impl std::fmt::Display for Element {
         match self {
             &Element::Variable(ref var) => {
                 write!(f, "{}", var)
+            },
+            &Element::Pull(Pull { ref var, patterns: _ }) => {
+                write!(f, "(pull {} [TODO])", var)
             },
             &Element::Aggregate(ref agg) => {
                 match agg.args.len() {

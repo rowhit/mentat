@@ -58,6 +58,9 @@ use self::mentat_query::{
     PatternNonValuePlace,
     PatternValuePlace,
     Predicate,
+    Pull,
+    PullAttributeSpec,
+    PullConcreteAttribute,
     QueryFunction,
     SrcVar,
     TypeAnnotation,
@@ -172,6 +175,8 @@ def_parser!(Query, order, Order, {
 });
 
 def_matches_plain_symbol!(Query, the, "the");
+def_matches_plain_symbol!(Query, pull, "pull");
+def_matches_plain_symbol!(Query, wildcard, "*");
 
 pub struct Where<'a>(std::marker::PhantomData<&'a ()>);
 
@@ -282,6 +287,59 @@ def_parser!(Query, aggregate, Aggregate, {
          .map(|(func, args)| Aggregate {
              func, args,
          })
+});
+
+def_parser!(Query, pull_attribute, PullAttributeSpec, {
+    choice([
+        try(Query::wildcard().map(|_| PullAttributeSpec::Wildcard)),
+        // TODO
+    ])
+});
+
+// A wildcard can appear only once.
+// If a wildcard appears, only map expressions can be present.
+fn validate_attributes<T, E>(attrs: Vec<PullAttributeSpec>) -> std::result::Result<Vec<PullAttributeSpec>, combine::primitives::Error<T, E>> {
+    match attrs.len() {
+        0 => unreachable!(),     // We use `many1` to parse.
+        1 => Ok(attrs),
+        _ => {
+            let mut wildcard_seen = false;
+            let mut non_map_or_wildcard_seen = false;
+            for attr in attrs.iter() {
+                match attr {
+                    &PullAttributeSpec::Wildcard => {
+                        if wildcard_seen {
+                            return Err(
+                                combine::primitives::Error::Unexpected("duplicate wildcard pull attribute".into())
+                            );
+                        }
+                        wildcard_seen = true;
+                        if non_map_or_wildcard_seen {
+                            return Err(
+                                combine::primitives::Error::Unexpected("wildcard with specified attributes".into())
+                            );
+                        }
+                    },
+                    &PullAttributeSpec::Attribute(_) |
+                    &PullAttributeSpec::LimitedAttribute(_, _) => {
+                        non_map_or_wildcard_seen = true;
+                        if wildcard_seen {
+                            return Err(
+                                combine::primitives::Error::Unexpected("wildcard with specified attributes".into())
+                            );
+                        }
+                    },
+                    // TODO: map form.
+                }
+            }
+            Ok(attrs)
+        },
+    }
+
+}
+
+def_parser!(Query, pull_attributes, Vec<PullAttributeSpec>, {
+    vector().of_exactly(many1(Query::pull_attribute())).and_then(validate_attributes)
 });
 
 /// A vector containing just a parenthesized filter expression.
@@ -440,10 +498,20 @@ def_parser!(Find, aggregate_element, Element, {
     Query::aggregate().map(Element::Aggregate)
 });
 
+def_parser!(Find, pull_element, Element, {
+    seq().of_exactly(Query::pull().with(Query::variable().and(Query::pull_attributes())))
+         .map(|(var, attrs)| Element::Pull(Pull { var: var, patterns: attrs }))
+});
+
 def_parser!(Find, elem, Element, {
-    choice([try(Find::variable_element()),
-            try(Find::corresponding_element()),
-            try(Find::aggregate_element())])
+    choice([
+        try(Find::variable_element()),
+
+        // This comes first because otherwise (the ?x) will match as an aggregate.
+        try(Find::corresponding_element()),
+        try(Find::aggregate_element()),
+        try(Find::pull_element()),
+    ])
 });
 
 def_parser!(Find, find_scalar, FindSpec, {
@@ -1072,5 +1140,21 @@ mod test {
                                   variable: Variable::from_valid_name("?foo"),
                               }));
 
+    }
+
+    #[test]
+    fn test_pull() {
+        assert_edn_parses_to!(Query::pull_attribute,
+                              "*",
+                              PullAttributeSpec::Wildcard);
+        assert_edn_parses_to!(Query::pull_attributes,
+                              "[*]",
+                              vec![PullAttributeSpec::Wildcard]);
+        assert_edn_parses_to!(Find::elem,
+                              "(pull ?v [*])",
+                              Element::Pull(Pull {
+                                  var: Variable::from_valid_name("?v"),
+                                  patterns: vec![PullAttributeSpec::Wildcard],
+                              }));
     }
 }
