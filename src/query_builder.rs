@@ -71,6 +71,7 @@ impl<'a> QueryBuilder<'a> {
 
     pub fn bind_instant(&mut self, var: &str, value: i64) -> &mut Self {
        self.values.insert(Variable::from_valid_name(var), TypedValue::instant(value));
+
        self
     }
 

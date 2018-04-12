@@ -1,4 +1,4 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
+    /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -333,10 +333,10 @@ class MentatTests: XCTestCase {
         let mentat = Mentat()
         let report = self.populateWithTypesSchema(mentat: mentat)!
         let aEntid = report.entidForTmpId(tmpId: "a")
-        let query = "[:find ?e . :in ?bool :where [?e :foo/boolean ?bool]]"
+        let query = "[:find ?e . :in ?long :where [?e :foo/long ?long]]"
         let expect = expectation(description: "Query is executed")
         try! mentat.query(query: query)
-              .bind(varName: "?bool", toBoolean: true)
+              .bind(varName: "?long", toLong: 25)
               .executeScalar { (value, error) in
                 assert(error == nil, "Unexpected error: \(String(describing: error))")
                 XCTAssertNotNil(value)
@@ -420,8 +420,13 @@ class MentatTests: XCTestCase {
         let aEntid = report.entidForTmpId(tmpId: "a")
         let query = "[:find [?e ?d] :in ?now :where [?e :foo/instant ?d] [(< ?d ?now)]]"
         let expect = expectation(description: "Query is executed")
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZZZZZ"
+        let boundDate = formatter.date(from: "2018-04-16T16:39:18+00:00")!
+
         try! mentat.query(query: query)
-            .bind(varName: "?now", toDate: Date())
+            .bind(varName: "?now", toDate: boundDate)
             .executeTuple { (row, error) in
                 assert(error == nil, "Unexpected error: \(String(describing: error))")
                 XCTAssertNotNil(row)

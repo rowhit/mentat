@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7B630983208608E3004EAC20 /* libtoodle.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7BEB7D21207BDDEF000369AD /* libtoodle.a */; };
 		7BDB96942077C299009D0651 /* Mentat.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7BDB968A2077C299009D0651 /* Mentat.framework */; };
 		7BDB96992077C299009D0651 /* MentatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BDB96982077C299009D0651 /* MentatTests.swift */; };
 		7BDB969B2077C299009D0651 /* Mentat.h in Headers */ = {isa = PBXBuildFile; fileRef = 7BDB968D2077C299009D0651 /* Mentat.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -23,7 +24,6 @@
 		7BDB96C9207B735A009D0651 /* fixtures in Resources */ = {isa = PBXBuildFile; fileRef = 7BDB96C8207B735A009D0651 /* fixtures */; };
 		7BDB96CC207B7684009D0651 /* Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BDB96CB207B7684009D0651 /* Errors.swift */; };
 		7BEB7D2C207D03DA000369AD /* TxReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BEB7D2B207D03DA000369AD /* TxReport.swift */; };
-		7BEB7D2D207F6B73000369AD /* libmentat_ffi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7BEB7D23207BE2AF000369AD /* libmentat_ffi.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -37,6 +37,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7B911E1A2085081D000998CB /* libtoodle.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libtoodle.a; path = "../../../../sync-storage-prototype/rust/target/universal/release/libtoodle.a"; sourceTree = "<group>"; };
 		7BDB968A2077C299009D0651 /* Mentat.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Mentat.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		7BDB968D2077C299009D0651 /* Mentat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mentat.h; sourceTree = "<group>"; };
 		7BDB968E2077C299009D0651 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -68,7 +69,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7BDB96C22077CD98009D0651 /* libresolv.tbd in Frameworks */,
-				7BEB7D2D207F6B73000369AD /* libmentat_ffi.a in Frameworks */,
+				7B630983208608E3004EAC20 /* libtoodle.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -160,6 +161,7 @@
 		7BDB96BE2077CD7A009D0651 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				7B911E1A2085081D000998CB /* libtoodle.a */,
 				7BEB7D23207BE2AF000369AD /* libmentat_ffi.a */,
 				7BEB7D21207BDDEF000369AD /* libtoodle.a */,
 				7BDB96C12077CD98009D0651 /* libresolv.tbd */,

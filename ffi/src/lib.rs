@@ -58,6 +58,8 @@ pub use utils::strings::{
     string_to_c_char,
 };
 
+pub use utils::log;
+
 pub type TypedValueIterator = vec::IntoIter<TypedValue>;
 pub type TypedValueListIterator = vec::IntoIter<Vec<TypedValue>>;
 
@@ -270,7 +272,12 @@ pub unsafe extern "C" fn query_builder_bind_uuid(query_builder: *mut QueryBuilde
 pub unsafe extern "C" fn query_builder_execute_scalar(query_builder: *mut QueryBuilder) -> *mut ExternResult {
     let query_builder = &mut*query_builder;
     let results = query_builder.execute_scalar();
-    Box::into_raw(Box::new(results.into()))
+    let extern_result = match results {
+        Ok(Some(v)) => ExternResult { err: std::ptr::null(), ok: Box::into_raw(Box::new(v)) as *const _ as *const c_void, },
+        Ok(None) => ExternResult { err: std::ptr::null(), ok: std::ptr::null(), },
+        Err(e) => ExternResult { err: string_to_c_char(e.description()), ok: std::ptr::null(), }
+    };
+    Box::into_raw(Box::new(extern_result))
 }
 
 #[no_mangle]
@@ -282,9 +289,17 @@ pub unsafe extern "C" fn query_builder_execute_coll(query_builder: *mut QueryBui
 
 #[no_mangle]
 pub unsafe extern "C" fn query_builder_execute_tuple(query_builder: *mut QueryBuilder) -> *mut ExternResult {
+    log::d("query_builder_execute_tuple");
     let query_builder = &mut*query_builder;
+    log::d("query_builder");
     let results = query_builder.execute_tuple();
-    Box::into_raw(Box::new(results.into()))
+    log::d(&format!("results {:?}", results));
+    let extern_result = match results {
+        Ok(Some(v)) => ExternResult { err: std::ptr::null(), ok: Box::into_raw(Box::new(v)) as *const _ as *const c_void, },
+        Ok(None) => ExternResult { err: std::ptr::null(), ok: std::ptr::null(), },
+        Err(e) => ExternResult { err: string_to_c_char(e.description()), ok: std::ptr::null(), }
+    };
+    Box::into_raw(Box::new(extern_result))
 }
 
 #[no_mangle]
@@ -305,6 +320,10 @@ pub unsafe extern "C" fn typed_value_as_long(typed_value: *mut TypedValue) ->  i
 #[no_mangle]
 pub unsafe extern "C" fn typed_value_as_entid(typed_value: *mut TypedValue) ->  Entid {
     let typed_value = Box::from_raw(typed_value);
+    let value_type = typed_value.value_type();
+    if value_type != ValueType::Ref {
+        log::d(&format!("Expected {:?}, received {:?}", ValueType::Ref, value_type));
+    }
     typed_value.into_entid().expect("Typed value cannot be coerced into an Entid")
 }
 
