@@ -59,7 +59,7 @@ impl From<KnownEntid> for Entid {
 
 impl From<KnownEntid> for Binding {
     fn from(k: KnownEntid) -> Binding {
-        Binding::Ref(k.0)
+        Binding::Scalar(TypedValue::Ref(k.0))
     }
 }
 
@@ -186,58 +186,41 @@ pub enum TypedValue {
     Uuid(Uuid),                        // It's only 128 bits, so this should be acceptable to clone.
 }
 
-/// The values stored in a `StructuredMap` can be:
+/// The values bound in a query specification can be:
 ///
 /// * Vecs of structured values, for multi-valued component attributes or nested expressions.
 /// * Single structured values, for single-valued component attributes or nested expressions.
 /// * Single typed values, for simple attributes.
-///   Note that the `TypedValue` enum is inlined here for convenience: `Binding` is
-///   an expansion of it.
 ///
-/// Datomic also supports structured _bindings_; at present Mentat does not, but this type
+/// The `Binding` enum defines these three options.
+///
+/// Datomic also supports structured inputs; at present Mentat does not, but this type
 /// would also serve that purpose.
 ///
 /// Note that maps are not ordered….
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Binding {
-    Ref(Entid),
-    Boolean(bool),
-    Long(i64),
-    Double(OrderedFloat<f64>),
-    Instant(DateTime<Utc>),
-    String(Rc<String>),
-    Keyword(Rc<NamespacedKeyword>),
-    Uuid(Uuid),
-
+    Scalar(TypedValue),
     Vec(Rc<Vec<Binding>>),
     Map(Rc<StructuredMap>),
 }
 
 impl From<TypedValue> for Binding {
     fn from(src: TypedValue) -> Self {
-        match src {
-            TypedValue::Ref(v) => Binding::Ref(v),
-            TypedValue::Boolean(v) => Binding::Boolean(v),
-            TypedValue::Long(v) => Binding::Long(v),
-            TypedValue::Double(v) => Binding::Double(v),
-            TypedValue::Instant(v) => Binding::Instant(v),
-            TypedValue::String(v) => Binding::String(v),
-            TypedValue::Keyword(v) => Binding::Keyword(v),
-            TypedValue::Uuid(v) => Binding::Uuid(v),
-        }
+        Binding::Scalar(src)
     }
 }
 
 
 impl<'a> From<&'a str> for Binding {
     fn from(value: &'a str) -> Binding {
-        Binding::String(Rc::new(value.to_string()))
+        Binding::Scalar(TypedValue::String(Rc::new(value.to_string())))
     }
 }
 
 impl From<String> for Binding {
     fn from(value: String) -> Binding {
-        Binding::String(Rc::new(value))
+        Binding::Scalar(TypedValue::String(Rc::new(value)))
     }
 }
 
@@ -246,14 +229,7 @@ impl TryFrom<Binding> for TypedValue {
     type Error = ();
     fn try_from(src: Binding) -> Result<TypedValue, ()> {
         match src {
-            Binding::Ref(v) => Ok(TypedValue::Ref(v)),
-            Binding::Boolean(v) => Ok(TypedValue::Boolean(v)),
-            Binding::Long(v) => Ok(TypedValue::Long(v)),
-            Binding::Double(v) => Ok(TypedValue::Double(v)),
-            Binding::Instant(v) => Ok(TypedValue::Instant(v)),
-            Binding::String(v) => Ok(TypedValue::String(v)),
-            Binding::Keyword(v) => Ok(TypedValue::Keyword(v)),
-            Binding::Uuid(v) => Ok(TypedValue::Uuid(v)),
+            Binding::Scalar(v) => Ok(v),
 
             Binding::Map(_) => Err(()),
             Binding::Vec(_) => Err(()),
@@ -299,14 +275,8 @@ impl Binding {
 
     pub fn value_type(&self) -> Option<ValueType> {
         match self {
-            &Binding::Ref(_) => Some(ValueType::Ref),
-            &Binding::Boolean(_) => Some(ValueType::Boolean),
-            &Binding::Long(_) => Some(ValueType::Long),
-            &Binding::Instant(_) => Some(ValueType::Instant),
-            &Binding::Double(_) => Some(ValueType::Double),
-            &Binding::String(_) => Some(ValueType::String),
-            &Binding::Keyword(_) => Some(ValueType::Keyword),
-            &Binding::Uuid(_) => Some(ValueType::Uuid),
+            &Binding::Scalar(ref v) => Some(v.value_type()),
+
             &Binding::Map(_) => None,
             &Binding::Vec(_) => None,
         }
@@ -527,77 +497,77 @@ impl TypedValue {
 impl Binding {
     pub fn into_known_entid(self) -> Option<KnownEntid> {
         match self {
-            Binding::Ref(v) => Some(KnownEntid(v)),
+            Binding::Scalar(TypedValue::Ref(v)) => Some(KnownEntid(v)),
             _ => None,
         }
     }
 
     pub fn into_entid(self) -> Option<Entid> {
         match self {
-            Binding::Ref(v) => Some(v),
+            Binding::Scalar(TypedValue::Ref(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_kw(self) -> Option<Rc<NamespacedKeyword>> {
         match self {
-            Binding::Keyword(v) => Some(v),
+            Binding::Scalar(TypedValue::Keyword(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_boolean(self) -> Option<bool> {
         match self {
-            Binding::Boolean(v) => Some(v),
+            Binding::Scalar(TypedValue::Boolean(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_long(self) -> Option<i64> {
         match self {
-            Binding::Long(v) => Some(v),
+            Binding::Scalar(TypedValue::Long(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_double(self) -> Option<f64> {
         match self {
-            Binding::Double(v) => Some(v.into_inner()),
+            Binding::Scalar(TypedValue::Double(v)) => Some(v.into_inner()),
             _ => None,
         }
     }
 
     pub fn into_instant(self) -> Option<DateTime<Utc>> {
         match self {
-            Binding::Instant(v) => Some(v),
+            Binding::Scalar(TypedValue::Instant(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_timestamp(self) -> Option<i64> {
         match self {
-            Binding::Instant(v) => Some(v.timestamp()),
+            Binding::Scalar(TypedValue::Instant(v)) => Some(v.timestamp()),
             _ => None,
         }
     }
 
     pub fn into_string(self) -> Option<Rc<String>> {
         match self {
-            Binding::String(v) => Some(v),
+            Binding::Scalar(TypedValue::String(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_uuid(self) -> Option<Uuid> {
         match self {
-            Binding::Uuid(v) => Some(v),
+            Binding::Scalar(TypedValue::Uuid(v)) => Some(v),
             _ => None,
         }
     }
 
     pub fn into_uuid_string(self) -> Option<String> {
         match self {
-            Binding::Uuid(v) => Some(v.hyphenated().to_string()),
+            Binding::Scalar(TypedValue::Uuid(v)) => Some(v.hyphenated().to_string()),
             _ => None,
         }
     }

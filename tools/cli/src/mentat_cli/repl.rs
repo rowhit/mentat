@@ -34,6 +34,7 @@ use mentat::{
     Binding,
     Syncable,
     TxReport,
+    TypedValue,
 };
 
 use command_parser::{
@@ -422,14 +423,14 @@ impl Repl {
         match query_output.results {
             QueryResults::Scalar(v) => {
                 if let Some(val) = v {
-                    writeln!(output, "| {}\t |", &self.value_as_string(val))?;
+                    writeln!(output, "| {}\t |", &self.binding_as_string(val))?;
                 }
             },
 
             QueryResults::Tuple(vv) => {
                 if let Some(vals) = vv {
                     for val in vals {
-                        write!(output, "| {}\t", self.value_as_string(val))?;
+                        write!(output, "| {}\t", self.binding_as_string(val))?;
                     }
                     writeln!(output, "|")?;
                 }
@@ -437,14 +438,14 @@ impl Repl {
 
             QueryResults::Coll(vv) => {
                 for val in vv {
-                    writeln!(output, "| {}\t|", self.value_as_string(val))?;
+                    writeln!(output, "| {}\t|", self.binding_as_string(val))?;
                 }
             },
 
             QueryResults::Rel(vvv) => {
                 for vv in vvv {
                     for v in vv {
-                        write!(output, "| {}\t", self.value_as_string(v))?;
+                        write!(output, "| {}\t", self.binding_as_string(v))?;
                     }
                     writeln!(output, "|")?;
                 }
@@ -511,8 +512,17 @@ impl Repl {
         Ok(report)
     }
 
-    fn value_as_string(&self, value: Binding) -> String {
+    fn binding_as_string(&self, value: Binding) -> String {
         use self::Binding::*;
+        match value {
+            Scalar(v) => self.value_as_string(v),
+            Map(_) => format!("TODO"),
+            Vec(_) => format!("TODO"),
+        }
+    }
+
+    fn value_as_string(&self, value: TypedValue) -> String {
+        use self::TypedValue::*;
         match value {
             Boolean(b) => if b { "true".to_string() } else { "false".to_string() },
             Double(d) => format!("{}", d),
@@ -522,8 +532,6 @@ impl Repl {
             Ref(r) => format!("{}", r),
             String(s) => format!("{:?}", s.to_string()),
             Uuid(u) => format!("{}", u),
-            Map(_) => format!("TODO"),
-            Vec(_) => format!("TODO"),
         }
     }
 }

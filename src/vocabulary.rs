@@ -886,7 +886,8 @@ impl<T> HasVocabularies for T where T: HasSchema + Queryable {
                 .into_iter()
                 .filter_map(|v|
                     match (&v[0], &v[1]) {
-                        (&Binding::Ref(vocab), &Binding::Long(version))
+                        (&Binding::Scalar(TypedValue::Ref(vocab)),
+                         &Binding::Scalar(TypedValue::Long(version)))
                         if version > 0 && (version < u32::max_value() as i64) => Some((vocab, version as u32)),
                         (_, _) => None,
                     })
@@ -899,7 +900,8 @@ impl<T> HasVocabularies for T where T: HasSchema + Queryable {
                 .into_iter()
                 .filter_map(|v| {
                     match (&v[0], &v[1]) {
-                        (&Binding::Ref(vocab), &Binding::Ref(attr)) => Some((vocab, attr)),
+                        (&Binding::Scalar(TypedValue::Ref(vocab)),
+                         &Binding::Scalar(TypedValue::Ref(attr))) => Some((vocab, attr)),
                         (_, _) => None,
                     }
                     });

@@ -131,7 +131,7 @@ fn test_scalar() {
 
     assert_eq!(1, results.len());
 
-    if let QueryResults::Scalar(Some(Binding::Keyword(ref rc))) = results {
+    if let QueryResults::Scalar(Some(Binding::Scalar(TypedValue::Keyword(ref rc)))) = results {
         // Should be '24'.
         assert_eq!(&NamespacedKeyword::new("db.type", "keyword"), rc.as_ref());
         assert_eq!(KnownEntid(24),
@@ -213,7 +213,7 @@ fn test_inputs() {
                         .expect("query to succeed")
                         .results;
 
-    if let QueryResults::Scalar(Some(Binding::Keyword(value))) = results {
+    if let QueryResults::Scalar(Some(Binding::Scalar(TypedValue::Keyword(value)))) = results {
         assert_eq!(value.as_ref(), &NamespacedKeyword::new("db.install", "valueType"));
     } else {
         panic!("Expected scalar.");
@@ -266,9 +266,9 @@ fn test_instants_and_uuids() {
         QueryResults::Tuple(Some(vals)) => {
             let mut vals = vals.into_iter();
             match (vals.next(), vals.next(), vals.next(), vals.next()) {
-                (Some(Binding::Ref(e)),
-                 Some(Binding::Uuid(u)),
-                 Some(Binding::Instant(t)),
+                (Some(Binding::Scalar(TypedValue::Ref(e))),
+                 Some(Binding::Scalar(TypedValue::Uuid(u))),
+                 Some(Binding::Scalar(TypedValue::Instant(t))),
                  None) => {
                      assert!(e > 40);       // There are at least this many entities in the store.
                      assert_eq!(Ok(u), Uuid::from_str("cf62d552-6569-4d1b-b667-04703041dfc4"));
@@ -383,9 +383,9 @@ fn test_fulltext() {
         QueryResults::Tuple(Some(vals)) => {
             let mut vals = vals.into_iter();
             match (vals.next(), vals.next(), vals.next(), vals.next()) {
-                (Some(Binding::Ref(x)),
-                 Some(Binding::String(text)),
-                 Some(Binding::Double(score)),
+                (Some(Binding::Scalar(TypedValue::Ref(x))),
+                 Some(Binding::Scalar(TypedValue::String(text))),
+                 Some(Binding::Scalar(TypedValue::Double(score))),
                  None) => {
                      assert_eq!(x, v);
                      assert_eq!(text.as_str(), "hello darkness my old friend");
@@ -448,7 +448,7 @@ fn test_fulltext() {
         QueryResults::Rel(rels) => {
             let values: Vec<Vec<Binding>> = rels.into_iter().collect();
             assert_eq!(values, vec![
-                vec![Binding::Ref(v),
+                vec![Binding::Scalar(TypedValue::Ref(v)),
                      "I've come to talk with you again".into(),
                 ]
             ]);
@@ -486,8 +486,8 @@ fn test_instant_range_query() {
     match r {
         QueryResults::Coll(vals) => {
             assert_eq!(vals,
-                       vec![Binding::Ref(*ids.get("b").unwrap()),
-                            Binding::Ref(*ids.get("c").unwrap())]);
+                       vec![Binding::Scalar(TypedValue::Ref(*ids.get("b").unwrap())),
+                            Binding::Scalar(TypedValue::Ref(*ids.get("c").unwrap()))]);
         },
         _ => panic!("Expected query to work."),
     }
@@ -628,7 +628,7 @@ fn test_aggregates_type_handling() {
                  .unwrap();
 
     // Our two transactions, the bootstrap transaction, plus the three values.
-    assert_eq!(Binding::Long(6), r);
+    assert_eq!(Binding::Scalar(TypedValue::Long(6)), r);
 
     // And you can min them, which returns an instant.
     let r = store.q_once(r#"[:find (min ?v) .
@@ -639,7 +639,7 @@ fn test_aggregates_type_handling() {
                  .unwrap();
 
     let earliest = DateTime::parse_from_rfc3339("2017-01-01T11:00:00.000Z").unwrap().with_timezone(&Utc);
-    assert_eq!(Binding::Instant(earliest), r);
+    assert_eq!(Binding::Scalar(TypedValue::Instant(earliest)), r);
 
     let r = store.q_once(r#"[:find (sum ?v) .
                              :where [_ _ ?v] [(long ?v)]]"#,
@@ -650,7 +650,7 @@ fn test_aggregates_type_handling() {
 
     // Yes, the current version is in the store as a Long!
     let total = 30i64 + 20i64 + 10i64 + ::mentat_db::db::CURRENT_VERSION as i64;
-    assert_eq!(Binding::Long(total), r);
+    assert_eq!(Binding::Scalar(TypedValue::Long(total)), r);
 
     let r = store.q_once(r#"[:find (avg ?v) .
                              :where [_ _ ?v] [(double ?v)]]"#,
@@ -660,7 +660,7 @@ fn test_aggregates_type_handling() {
                  .unwrap();
 
     let avg = (6.4f64 / 3f64) + (4.4f64 / 3f64) + (2.4f64 / 3f64);
-    assert_eq!(Binding::Double(avg.into()), r);
+    assert_eq!(Binding::Scalar(TypedValue::Double(avg.into())), r);
 }
 
 #[test]
@@ -700,7 +700,7 @@ fn test_type_reqs() {
     assert_eq!(res.width, 1);
     let entid =
         match res.into_iter().next().unwrap().into_iter().next().unwrap() {
-            Binding::Ref(eid) => {
+            Binding::Scalar(TypedValue::Ref(eid)) => {
                 eid
             },
             unexpected => {
@@ -753,7 +753,7 @@ fn test_type_reqs() {
                   .into();
     match res {
         QueryResults::Coll(vals) => {
-            assert_eq!(vals, vec![Binding::Long(5), Binding::Long(33)])
+            assert_eq!(vals, vec![Binding::Scalar(TypedValue::Long(5)), Binding::Scalar(TypedValue::Long(33))])
         },
         v => {
             panic!("Query returned unexpected type: {:?}", v);
@@ -800,7 +800,7 @@ fn test_monster_head_aggregates() {
                          .expect("results")
                          .into();
     match res {
-        QueryResults::Scalar(Some(Binding::Long(count))) => {
+        QueryResults::Scalar(Some(Binding::Scalar(TypedValue::Long(count)))) => {
             assert_eq!(count, 4);
         },
         r => panic!("Unexpected result {:?}", r),
@@ -811,7 +811,7 @@ fn test_monster_head_aggregates() {
                          .expect("results")
                          .into();
     match res {
-        QueryResults::Scalar(Some(Binding::Long(count))) => {
+        QueryResults::Scalar(Some(Binding::Scalar(TypedValue::Long(count)))) => {
             assert_eq!(count, 6);
         },
         r => panic!("Unexpected result {:?}", r),
@@ -921,7 +921,7 @@ fn test_basic_aggregates() {
                  .into();
     match r {
         QueryResults::Scalar(Some(val)) => {
-            assert_eq!(val, Binding::Long(2));
+            assert_eq!(val, Binding::Scalar(TypedValue::Long(2)));
         },
         _ => panic!("Expected scalar."),
     }
@@ -935,8 +935,8 @@ fn test_basic_aggregates() {
     match r {
         QueryResults::Tuple(Some(vals)) => {
             assert_eq!(vals,
-                       vec![Binding::Long(14),
-                            Binding::Long(42)]);
+                       vec![Binding::Scalar(TypedValue::Long(14)),
+                            Binding::Scalar(TypedValue::Long(42))]);
         },
         _ => panic!("Expected tuple."),
     }
@@ -952,8 +952,8 @@ fn test_basic_aggregates() {
     match r {
         QueryResults::Tuple(Some(vals)) => {
             assert_eq!(vals,
-                       vec![Binding::String("Alice".to_string().into()),
-                            Binding::Long(14)]);
+                       vec!["Alice".into(),
+                            Binding::Scalar(TypedValue::Long(14))]);
         },
         r => panic!("Unexpected results {:?}", r),
     }
@@ -969,8 +969,8 @@ fn test_basic_aggregates() {
     match r {
         QueryResults::Tuple(Some(vals)) => {
             assert_eq!(vals,
-                       vec![Binding::String("Carlos".to_string().into()),
-                            Binding::Long(42)]);
+                       vec!["Carlos".into(),
+                            Binding::Scalar(TypedValue::Long(42))]);
         },
         _ => panic!("Expected tuple."),
     }
@@ -1057,7 +1057,7 @@ fn test_combinatorial() {
 
     // How many different pairings of dancers were there?
     // If we just use `!=` (or `differ`), the number is doubled because of symmetry!
-    assert_eq!(Binding::Long(6),
+    assert_eq!(Binding::Scalar(TypedValue::Long(6)),
                store.q_once(r#"[:find (count ?right) .
                                 :with ?left
                                 :where
@@ -1074,7 +1074,7 @@ fn test_combinatorial() {
     // will come to rely on it. Instead we expose a specific operator: `unpermute`.
     // When used in a query that generates permuted pairs of references, this
     // ensures that only one permutation is returned for a given pair.
-    assert_eq!(Binding::Long(3),
+    assert_eq!(Binding::Scalar(TypedValue::Long(3)),
                store.q_once(r#"[:find (count ?right) .
                                 :with ?left
                                 :where
@@ -1240,7 +1240,7 @@ fn test_aggregation_implicit_grouping() {
     ]"#).unwrap().tempids;
 
     // How many different scores were there?
-    assert_eq!(Binding::Long(7),
+    assert_eq!(Binding::Scalar(TypedValue::Long(7)),
                store.q_once(r#"[:find (count ?score) .
                                 :where
                                 [?game :foo/score ?score]]"#, None)
@@ -1249,7 +1249,7 @@ fn test_aggregation_implicit_grouping() {
 
     // How many different games resulted in scores?
     // '14' appears twice.
-    assert_eq!(Binding::Long(8),
+    assert_eq!(Binding::Scalar(TypedValue::Long(8)),
                store.q_once(r#"[:find (count ?score) .
                                 :with ?game
                                 :where
@@ -1258,7 +1258,7 @@ fn test_aggregation_implicit_grouping() {
                     .expect("scalar results").unwrap());
 
     // Who's the highest-scoring vegetarian?
-    assert_eq!(vec!["Alice".into(), Binding::Long(99)],
+    assert_eq!(vec!["Alice".into(), Binding::Scalar(TypedValue::Long(99))],
                store.q_once(r#"[:find [(the ?name) (max ?score)]
                                 :where
                                 [?game :foo/score ?score]

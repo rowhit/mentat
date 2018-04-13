@@ -1234,7 +1234,7 @@ mod tests {
         let entities = conn.q_once(&sqlite, r#"[:find ?e . :where [?e :foo/bar 400]]"#, None).expect("Expected query to work").into_scalar().expect("expected rel results");
         let first = entities.expect("expected a result");
         let entid = match first {
-            Binding::Ref(entid) => entid,
+            Binding::Scalar(TypedValue::Ref(entid)) => entid,
             x => panic!("expected Some(Ref), got {:?}", x),
         };
 

@@ -344,7 +344,7 @@ fn test_add_vocab() {
 fn ea(row: Vec<Binding>) -> (KnownEntid, KnownEntid) {
     let mut row = row.into_iter();
     match (row.next(), row.next()) {
-        (Some(Binding::Ref(e)), Some(Binding::Ref(a))) => {
+        (Some(Binding::Scalar(TypedValue::Ref(e))), Some(Binding::Scalar(TypedValue::Ref(a)))) => {
             (KnownEntid(e), KnownEntid(a))
         },
         _ => panic!("Incorrect query shape for 'ea' helper."),
@@ -356,7 +356,7 @@ fn ea(row: Vec<Binding>) -> (KnownEntid, KnownEntid) {
 fn av(row: Vec<Binding>) -> (KnownEntid, TypedValue) {
     let mut row = row.into_iter();
     match (row.next(), row.next()) {
-        (Some(Binding::Ref(a)), Some(v)) => {
+        (Some(Binding::Scalar(TypedValue::Ref(a))), Some(v)) => {
             (KnownEntid(a), v.try_into().unwrap())
         },
         _ => panic!("Incorrect query shape for 'av' helper."),
@@ -389,7 +389,7 @@ fn height_of_person(in_progress: &InProgress, name: &str) -> Option<i64> {
                         .into_scalar_result()
                         .expect("result");
     match h {
-        Some(Binding::Long(v)) => Some(v),
+        Some(Binding::Scalar(TypedValue::Long(v))) => Some(v),
         _ => None,
     }
 }
@@ -592,7 +592,7 @@ fn test_upgrade_with_functions() {
                                    :order (asc ?year)]"#, None)
                        .into_coll_result()
                        .expect("coll");
-        assert_eq!(years, vec![Binding::Long(1984), Binding::Long(2019)]);
+        assert_eq!(years, vec![Binding::Scalar(TypedValue::Long(1984)), Binding::Scalar(TypedValue::Long(2019))]);
         in_progress.commit().expect("commit succeeded");
     }
 
@@ -612,7 +612,7 @@ fn test_upgrade_with_functions() {
                          .into_iter() {
                 let mut row = row.into_iter();
                 match (row.next(), row.next()) {
-                    (Some(Binding::Ref(person)), Some(Binding::Long(height))) => {
+                    (Some(Binding::Scalar(TypedValue::Ref(person))), Some(Binding::Scalar(TypedValue::Long(height)))) => {
                         // No need to explicitly retract: cardinality-one.
                         builder.add(KnownEntid(person), person_height, TypedValue::Long(inches_to_cm(height)))?;
                     },
@@ -681,7 +681,7 @@ fn test_upgrade_with_functions() {
                      .into_iter() {
             let mut row = row.into_iter();
             match (row.next(), row.next()) {
-                (Some(Binding::Ref(food)), Some(Binding::String(name))) => {
+                (Some(Binding::Scalar(TypedValue::Ref(food))), Some(Binding::Scalar(TypedValue::String(name)))) => {
                     if name.chars().any(|c| !c.is_lowercase()) {
                         let lowercased = name.to_lowercase();
                         println!("Need to rename {} from '{}' to '{}'", food, name, lowercased);
@@ -714,7 +714,7 @@ fn test_upgrade_with_functions() {
                      .into_iter() {
             let mut row = row.into_iter();
             match (row.next(), row.next()) {
-                (Some(Binding::Ref(left)), Some(Binding::Ref(right))) => {
+                (Some(Binding::Scalar(TypedValue::Ref(left))), Some(Binding::Scalar(TypedValue::Ref(right)))) => {
                     let keep = KnownEntid(left);
                     let replace = KnownEntid(right);
 
