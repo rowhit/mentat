@@ -8,18 +8,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use std::convert::{
-    TryFrom,
-    TryInto,
-};
-
 use mentat_core::{
     Binding,
     TypedValue,
-};
-
-use errors::{
-    Result,
 };
 
 /// The result you get from a 'rel' query, like:
@@ -47,30 +38,6 @@ pub struct RelResult<T> {
 }
 
 pub type StructuredRelResult = RelResult<Binding>;
-
-impl TryFrom<RelResult<Binding>> for RelResult<TypedValue> {
-    type Error = ::errors::Error;
-    fn try_from(src: RelResult<Binding>) -> Result<RelResult<TypedValue>> {
-        let (width, values) = (src.width, src.values);
-
-        // TODO: don't unwrap.
-        let values = values.into_iter().map(|v| v.try_into().unwrap()).collect();
-        Ok(RelResult {
-            width: width,
-            values: values,
-        })
-    }
-}
-
-impl From<RelResult<TypedValue>> for RelResult<Binding> {
-    fn from(src: RelResult<TypedValue>) -> RelResult<Binding> {
-        let (width, values) = (src.width, src.values);
-        RelResult {
-            width: width,
-            values: values.into_iter().map(|v| v.into()).collect(),
-        }
-    }
-}
 
 impl<T> RelResult<T> {
     pub fn empty(width: usize) -> RelResult<T> {

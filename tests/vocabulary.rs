@@ -17,10 +17,6 @@ extern crate mentat_core;
 extern crate mentat_db;
 extern crate rusqlite;
 
-use std::convert::{
-    TryInto,
-};
-
 use mentat::vocabulary;
 
 use mentat::vocabulary::{
@@ -357,7 +353,7 @@ fn av(row: Vec<Binding>) -> (KnownEntid, TypedValue) {
     let mut row = row.into_iter();
     match (row.next(), row.next()) {
         (Some(Binding::Scalar(TypedValue::Ref(a))), Some(v)) => {
-            (KnownEntid(a), v.try_into().unwrap())
+            (KnownEntid(a), v.val().unwrap())
         },
         _ => panic!("Incorrect query shape for 'av' helper."),
     }

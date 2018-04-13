@@ -165,8 +165,6 @@ pub struct Definition {
 }
 
 /// ```
-/// use std::convert::TryInto;
-///
 /// #[macro_use(kw)]
 /// extern crate mentat;
 ///
@@ -229,7 +227,7 @@ pub struct Definition {
 ///                     for row in results.into_iter() {
 ///                         let mut r = row.into_iter();
 ///                         let e = r.next().and_then(|e| e.into_known_entid()).expect("entity");
-///                         let obsolete: TypedValue = r.next().expect("value").try_into().expect("typed value");
+///                         let obsolete = r.next().expect("value").val().expect("typed value");
 ///                         builder.retract(e, link_title, obsolete)?;
 ///                     }
 ///                     ip.transact_builder(builder)?;

@@ -8,10 +8,6 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use std::convert::{
-    TryFrom,
-};
-
 use std::fmt;
 use std::rc::Rc;
 
@@ -224,20 +220,14 @@ impl From<String> for Binding {
     }
 }
 
-
-impl TryFrom<Binding> for TypedValue {
-    type Error = ();
-    fn try_from(src: Binding) -> Result<TypedValue, ()> {
-        match src {
-            Binding::Scalar(v) => Ok(v),
-
-            Binding::Map(_) => Err(()),
-            Binding::Vec(_) => Err(()),
+impl Binding {
+    pub fn val(self) -> Option<TypedValue> {
+        match self {
+            Binding::Scalar(v) => Some(v),
+            _ => None,
         }
     }
-}
 
-impl Binding {
     fn vec(values: Vec<TypedValue>) -> Binding {
         Binding::Vec(Rc::new(Binding::from_typed_values(values)))
     }
