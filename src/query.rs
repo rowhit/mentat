@@ -11,6 +11,8 @@
 use rusqlite;
 use rusqlite::types::ToSql;
 
+use std::convert::TryInto;
+
 use std::rc::Rc;
 
 use mentat_core::{
@@ -18,6 +20,7 @@ use mentat_core::{
     HasSchema,
     KnownEntid,
     Schema,
+    Binding,
     TypedValue,
 };
 
@@ -117,29 +120,68 @@ impl<'sqlite> PreparedQuery<'sqlite> {
 }
 
 pub trait IntoResult {
+    fn into_scalar_result(self) -> Result<Option<Binding>>;
+    fn into_coll_result(self) -> Result<Vec<Binding>>;
+    fn into_tuple_result(self) -> Result<Option<Vec<Binding>>>;
+    fn into_rel_result(self) -> Result<RelResult<Binding>>;
+}
+
+/*
+pub trait IntoResult {
     fn into_scalar_result(self) -> Result<Option<TypedValue>>;
     fn into_coll_result(self) -> Result<Vec<TypedValue>>;
     fn into_tuple_result(self) -> Result<Option<Vec<TypedValue>>>;
-    fn into_rel_result(self) -> Result<RelResult>;
+    fn into_rel_result(self) -> Result<RelResult<TypedValue>>;
 }
+*/
 
 impl IntoResult for QueryExecutionResult {
-    fn into_scalar_result(self) -> Result<Option<TypedValue>> {
+    fn into_scalar_result(self) -> Result<Option<Binding>> {
         self?.into_scalar().map_err(|e| e.into())
     }
 
-    fn into_coll_result(self) -> Result<Vec<TypedValue>> {
+    fn into_coll_result(self) -> Result<Vec<Binding>> {
         self?.into_coll().map_err(|e| e.into())
     }
 
-    fn into_tuple_result(self) -> Result<Option<Vec<TypedValue>>> {
+    fn into_tuple_result(self) -> Result<Option<Vec<Binding>>> {
         self?.into_tuple().map_err(|e| e.into())
     }
 
-    fn into_rel_result(self) -> Result<RelResult> {
+    fn into_rel_result(self) -> Result<RelResult<Binding>> {
         self?.into_rel().map_err(|e| e.into())
     }
 }
+
+/*
+impl IntoResult for QueryExecutionResult {
+    fn into_scalar_result(self) -> Result<Option<TypedValue>> {
+        self?.into_scalar()
+             .and_then(|v| v.try_into())
+             .map_err(|e| e.into())
+    }
+
+    fn into_coll_result(self) -> Result<Vec<TypedValue>> {
+        self?.into_coll()
+             .and_then(|v| v.into_iter().map(|x| x.try_into()).collect())
+             .map_err(|e| e.into())
+    }
+
+    fn into_tuple_result(self) -> Result<Option<Vec<TypedValue>>> {
+        self?.into_tuple()
+             .and_then(|v| v.into_iter().map(|x| x.try_into()).collect())
+             .map_err(|e| e.into())
+    }
+
+    fn into_rel_result(self) -> Result<RelResult<TypedValue>> {
+        self?.into_rel()
+             .and_then(|v: RelResult<Binding>| {
+                 v.try_into()
+             })
+             .map_err(|e| e.into())
+    }
+}
+*/
 
 /// A struct describing information about how Mentat would execute a query.
 pub enum QueryExplanation {
@@ -232,7 +274,10 @@ pub fn lookup_value<'sqlite, 'schema, 'cache, E, A>
     if known.is_attribute_cached_forward(attrid) {
         Ok(known.get_value_for_entid(known.schema, attrid, entid).cloned())
     } else {
-        fetch_values(sqlite, known, entid, attrid, true).into_scalar_result()
+        fetch_values(sqlite, known, entid, attrid, true)
+            .into_scalar_result()
+            // Safe to unwrap: we never retrieve structure.
+            .map(|r| r.map(|v| v.try_into().unwrap()))
     }
 }
 
@@ -251,7 +296,10 @@ pub fn lookup_values<'sqlite, E, A>
                 .cloned()
                 .unwrap_or_else(|| vec![]))
     } else {
-        fetch_values(sqlite, known, entid, attrid, false).into_coll_result()
+        fetch_values(sqlite, known, entid, attrid, false)
+            .into_coll_result()
+            // Safe to unwrap: we never retrieve structure.
+            .map(|v| v.into_iter().map(|x| x.try_into().unwrap()).collect())
     }
 }
 
