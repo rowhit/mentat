@@ -25,8 +25,6 @@ use std::sync::{
 };
 use std::vec;
 
-use libc::time_t;
-
 pub use mentat::{
     Entid,
     FindSpec,
@@ -117,7 +115,7 @@ impl<T, E> From<Result<T, E>> for ExternResult where E: std::error::Error {
             },
             Err(e) => {
                 ExternResult {
-                    err: string_to_c_char(e.description()),
+                    err: string_to_c_char(e.to_string()),
                     ok: std::ptr::null(),
                 }
             }
@@ -244,7 +242,7 @@ pub unsafe extern "C" fn query_builder_bind_double(query_builder: *mut QueryBuil
 
 // instant
 #[no_mangle]
-pub unsafe extern "C" fn query_builder_bind_timestamp(query_builder: *mut QueryBuilder, var: *const c_char, value: time_t) {
+pub unsafe extern "C" fn query_builder_bind_timestamp(query_builder: *mut QueryBuilder, var: *const c_char, value: i64) {
     let var = c_char_to_string(var);
     let query_builder = &mut*query_builder;
     query_builder.bind_instant(&var, value as i64);
@@ -275,7 +273,7 @@ pub unsafe extern "C" fn query_builder_execute_scalar(query_builder: *mut QueryB
     let extern_result = match results {
         Ok(Some(v)) => ExternResult { err: std::ptr::null(), ok: Box::into_raw(Box::new(v)) as *const _ as *const c_void, },
         Ok(None) => ExternResult { err: std::ptr::null(), ok: std::ptr::null(), },
-        Err(e) => ExternResult { err: string_to_c_char(e.description()), ok: std::ptr::null(), }
+        Err(e) => ExternResult { err: string_to_c_char(e.to_string()), ok: std::ptr::null(), }
     };
     Box::into_raw(Box::new(extern_result))
 }
@@ -289,15 +287,12 @@ pub unsafe extern "C" fn query_builder_execute_coll(query_builder: *mut QueryBui
 
 #[no_mangle]
 pub unsafe extern "C" fn query_builder_execute_tuple(query_builder: *mut QueryBuilder) -> *mut ExternResult {
-    log::d("query_builder_execute_tuple");
     let query_builder = &mut*query_builder;
-    log::d("query_builder");
     let results = query_builder.execute_tuple();
-    log::d(&format!("results {:?}", results));
     let extern_result = match results {
         Ok(Some(v)) => ExternResult { err: std::ptr::null(), ok: Box::into_raw(Box::new(v)) as *const _ as *const c_void, },
         Ok(None) => ExternResult { err: std::ptr::null(), ok: std::ptr::null(), },
-        Err(e) => ExternResult { err: string_to_c_char(e.description()), ok: std::ptr::null(), }
+        Err(e) => ExternResult { err: string_to_c_char(e.to_string()), ok: std::ptr::null(), }
     };
     Box::into_raw(Box::new(extern_result))
 }
@@ -320,10 +315,6 @@ pub unsafe extern "C" fn typed_value_as_long(typed_value: *mut TypedValue) ->  i
 #[no_mangle]
 pub unsafe extern "C" fn typed_value_as_entid(typed_value: *mut TypedValue) ->  Entid {
     let typed_value = Box::from_raw(typed_value);
-    let value_type = typed_value.value_type();
-    if value_type != ValueType::Ref {
-        log::d(&format!("Expected {:?}, received {:?}", ValueType::Ref, value_type));
-    }
     typed_value.into_entid().expect("Typed value cannot be coerced into an Entid")
 }
 
@@ -353,8 +344,7 @@ pub unsafe extern "C" fn typed_value_as_double(typed_value: *mut TypedValue) -> 
 pub unsafe extern "C" fn typed_value_as_timestamp(typed_value: *mut TypedValue) ->  i64 {
     let typed_value = Box::from_raw(typed_value);
     let t = typed_value.value_type();
-    let val = typed_value.into_timestamp().expect(&format!("Typed value of type {:?} cannot be coerced into a Timestamp", t));
-    val
+    typed_value.into_timestamp().expect(&format!("Typed value of type {:?} cannot be coerced into a Timestamp", t))
 }
 
 //as_string
@@ -539,7 +529,7 @@ pub unsafe extern "C" fn store_value_for_attribute(store: *mut Store, entid: i64
     let value = match store.lookup_value_for_attribute(entid, &kw) {
         Ok(Some(v)) => ExternResult { ok: Box::into_raw(Box::new(v)) as *const _ as *const c_void, err: std::ptr::null() },
         Ok(None) => ExternResult { ok: std::ptr::null(), err: std::ptr::null() },
-        Err(e) => ExternResult { ok: std::ptr::null(), err: string_to_c_char(e.description()) },
+        Err(e) => ExternResult { ok: std::ptr::null(), err: string_to_c_char(e.to_string()) },
     };
     Box::into_raw(Box::new(value))
 }
@@ -667,10 +657,11 @@ pub unsafe extern "C" fn store_set_double_for_attribute_on_entid(store: *mut Sto
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn store_set_timestamp_for_attribute_on_entid(store: *mut Store, entid: Entid, attribute: *const c_char, value: time_t) -> *mut ExternResult {
+pub unsafe extern "C" fn store_set_timestamp_for_attribute_on_entid(store: *mut Store, entid: Entid, attribute: *const c_char, value: i64) -> *mut ExternResult {
     let store = &mut*store;
     let kw = kw_from_string(c_char_to_string(attribute));
-    let res = store.assert_datom(KnownEntid(entid), kw, TypedValue::instant(value as i64));
+    let typed_value = TypedValue::instant(value);
+    let res = store.assert_datom(KnownEntid(entid), kw, typed_value);
     Box::into_raw(Box::new(res.into()))
 }
 
