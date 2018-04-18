@@ -23,11 +23,6 @@ public class Mentat extends RustObject {
         System.loadLibrary("mentat_ffi");
     }
 
-    public static void main(String[] args) {
-        System.out.println(System.getProperty("java.library.path"));
-        Mentat m = new Mentat("");
-    }
-
     public Mentat(String dbPath) {
         this.rawPointer = JNA.INSTANCE.store_open(dbPath);
     }
@@ -39,7 +34,6 @@ public class Mentat extends RustObject {
     public Mentat(Pointer rawPointer) { this.rawPointer = rawPointer; }
 
     public TxReport transact(String transaction) {
-        Log.d("Mentat", "Transacting "+ transaction);
         RustResult result = JNA.INSTANCE.store_transact(this.rawPointer, transaction);
         if (result.isFailure()) {
             Log.i("Mentat", result.err);
@@ -48,8 +42,9 @@ public class Mentat extends RustObject {
 
         if (result.isSuccess()) {
             return new TxReport(result.ok);
+        } else {
+            return null;
         }
-        return null;
     }
 
     public long entIdForAttribute(String attribute) {
@@ -80,7 +75,6 @@ public class Mentat extends RustObject {
 
     public void setDateForAttributeOfEntity(Date date, String attribute, long entid) {
         long timestamp = date.getTime() * 1000;
-        Log.d("Mentat", "Storing "+ timestamp +" for "+ attribute);
         RustResult result = JNA.INSTANCE.store_set_timestamp_for_attribute_on_entid(this.rawPointer, entid, attribute, timestamp);
         if (result.isFailure()) {
             Log.i("Mentat", result.err);

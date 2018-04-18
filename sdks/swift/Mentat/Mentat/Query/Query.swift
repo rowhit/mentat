@@ -59,7 +59,6 @@ class Query: OptionalRustObject {
         guard let r = self.raw else {
             throw QueryError.builderConsumed
         }
-        print("binding \(value) as microseconds \(value.toMicroseconds()) to \(varName)")
         query_builder_bind_timestamp(r, varName, value.toMicroseconds())
         return self
     }

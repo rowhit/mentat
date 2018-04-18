@@ -57,7 +57,6 @@ public class Query extends RustObject {
     Query bindDate(String varName, Date value) {
         this.validate();
         long timestamp = value.getTime() * 1000;
-        Log.d("Query", "binding "+ value +" as microseconds "+ timestamp +" to "+ varName);
         JNA.INSTANCE.query_builder_bind_timestamp(this.rawPointer, varName, timestamp);
         return this;
     }
@@ -114,9 +113,9 @@ public class Query extends RustObject {
 
         if (result.isSuccess()) {
             handler.handleValue(new TypedValue(result.ok));
+        } else {
+            handler.handleValue(null);
         }
-
-        handler.handleValue(null);
     }
 
     void executeColl(final CollResultHandler handler) {

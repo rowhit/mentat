@@ -38,14 +38,6 @@ public class FFIIntegrationTest {
     Mentat mentat = null;
 
     @Test
-    public void useAppContext() throws Exception {
-        // Context of the app under test.
-        Context appContext = InstrumentationRegistry.getTargetContext();
-
-        assertEquals("com.mozilla.mentat", appContext.getPackageName());
-    }
-
-    @Test
     public void openInMemoryStoreSucceeds() throws Exception {
         Mentat mentat = new Mentat();
         assertNotNull(mentat);
@@ -80,7 +72,6 @@ public class FFIIntegrationTest {
 
     public TxReport transactCitiesSchema(Mentat mentat) {
         String citiesSchema = this.readFile("cities.schema");
-        System.out.println(".t " + citiesSchema);
         return mentat.transact(citiesSchema);
     }
 
@@ -163,8 +154,8 @@ public class FFIIntegrationTest {
         TxReport dataReport = this.transactSeattleData(mentat);
         assertNotNull(dataReport);
         assertTrue(dataReport.getTxId() > 0);
-        Long entid = dataReport.getEntidForTempId("a17592186045438");
-        assertEquals(65566, entid.longValue());
+        Long entid = dataReport.getEntidForTempId("a17592186045605");
+        assertEquals(65733, entid.longValue());
     }
 
     @Test
@@ -426,12 +417,10 @@ public class FFIIntegrationTest {
         TxReport report = this.populateWithTypesSchema(mentat);
         final Long aEntid = report.getEntidForTempId("a");
 
-        DateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZZZZZ", Locale.ENGLISH);
-        format.parse("2018-04-16T16:39:18+00:00");
-        Calendar cal = format.getCalendar();
+        Date date = new Date(1523896758000L);
         String query = "[:find [?e ?d] :in ?now :where [?e :foo/instant ?d] [(< ?d ?now)]]";
         final Expectation expectation = new Expectation();
-        mentat.query(query).bindDate("?now", cal.getTime()).executeTuple(new TupleResultHandler() {
+        mentat.query(query).bindDate("?now", date).executeTuple(new TupleResultHandler() {
             @Override
             public void handleRow(TupleResult row) {
                 assertNotNull(row);
@@ -449,15 +438,14 @@ public class FFIIntegrationTest {
 
     @Test
     public void bindingStringValueSucceeds() throws InterruptedException {
-        Mentat mentat = new Mentat();
-        TxReport report = this.populateWithTypesSchema(mentat);
+        Mentat mentat = this.getStore();
         String query = "[:find ?n . :in ?name :where [(fulltext $ :community/name ?name) [[?e ?n]]]]";
         final Expectation expectation = new Expectation();
         mentat.query(query).bindString("?name", "Wallingford").executeScalar(new ScalarResultHandler() {
             @Override
             public void handleValue(TypedValue value) {
                 assertNotNull(value);
-                assertEquals("\"KOMO Communities - Wallingford\"", value.asString());
+                assertEquals("KOMO Communities - Wallingford", value.asString());
                 expectation.fulfill();
             }
         });

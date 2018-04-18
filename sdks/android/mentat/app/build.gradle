@@ -1,10 +1,9 @@
-apply plugin: 'com.android.application'
+apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion 26
     defaultConfig {
-        applicationId "com.mozilla.mentat"
         minSdkVersion 26
         targetSdkVersion 26
         versionCode 1

@@ -51,16 +51,8 @@ public class TypedValue extends RustObject {
 
     public Date asDate() {
         long timestamp = JNA.INSTANCE.typed_value_as_timestamp(this.rawPointer) * 1_000;
-        Log.d("TypedValue", "timestamp "+ timestamp);
         this.rawPointer = null;
-        TimeZone timeZone = TimeZone.getTimeZone("UTC");
-        Calendar cal = Calendar.getInstance(timeZone);
-        cal.setTimeInMillis(timestamp);
-        Log.d("TypedValue", "calendar "+ cal);
-        Log.d("TypedValue","date "+ cal.getTime());
-//        Calendar cal = Calendar.getInstance();
-//        cal.setTimeInMillis(value);
-        return cal.getTime();
+        return new Date(timestamp);
     }
 
     public String asString() {

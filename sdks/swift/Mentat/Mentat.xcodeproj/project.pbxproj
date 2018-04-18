@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7B630983208608E3004EAC20 /* libtoodle.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7BEB7D21207BDDEF000369AD /* libtoodle.a */; };
+		7BAE75982087BB6F00895D37 /* libmentat_ffi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7BEB7D23207BE2AF000369AD /* libmentat_ffi.a */; };
 		7BDB96942077C299009D0651 /* Mentat.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7BDB968A2077C299009D0651 /* Mentat.framework */; };
 		7BDB96992077C299009D0651 /* MentatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BDB96982077C299009D0651 /* MentatTests.swift */; };
 		7BDB969B2077C299009D0651 /* Mentat.h in Headers */ = {isa = PBXBuildFile; fileRef = 7BDB968D2077C299009D0651 /* Mentat.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -69,7 +69,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7BDB96C22077CD98009D0651 /* libresolv.tbd in Frameworks */,
-				7B630983208608E3004EAC20 /* libtoodle.a in Frameworks */,
+				7BAE75982087BB6F00895D37 /* libmentat_ffi.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
